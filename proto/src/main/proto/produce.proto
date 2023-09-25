@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+import public "common.proto";
+
+package top.powerdata.powermq.producer;
+
+option java_multiple_files = true;
+option java_package = "top.powerdata.powermq.proto";
+option java_outer_classname = "Producer";
+
+message SendRequest {
+    string partitionKey = 1;
+    string producerName = 2;
+    string clientId = 3;
+    bool partitionAssigned = 4;
+    common.Partition partition = 5;
+
+    common.MessageProduce msg = 99;
+};
+
+message SendResponse {
+    common.ResponseHeader respHeader = 1;
+    string msgId = 2;
+    common.Partition partition = 3;
+    int64 partitionOffset = 4;
+    string offsetMsgId = 5;
+    string expireTimestamp = 6;
+};
+
+service ProduceService {
+    rpc Send(SendRequest) returns (SendResponse);
+};

@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+import public "common.proto";
+
+package top.powerdata.powermq.admin;
+
+option java_multiple_files = true;
+option java_package = "top.powerdata.powermq.proto";
+option java_outer_classname = "Admin";
+
+
+message QueryOffsetRequest {
+    string topic = 1;
+    enum QueryOffsetType {
+        BEGIN = 0;
+        END = 1;
+        TIMESTAMP = 2;
+        CURRENT = 3;
+    }
+    QueryOffsetType queryOffsetType = 2;
+    repeated common.Partition partitions = 3;
+    int64 timestamp = 4;
+    string consumerGroup = 6;
+}
+
+message QueryOffsetResponse {
+    common.ResponseHeader responseHeader = 1;
+    repeated OffsetResultPerQueue resetResult = 2;
+}
+
+message ResetOffsetRequest {
+    string topic = 1;
+    string consumerGroup = 2;
+    repeated common.Partition partitions = 3;
+    enum ResetOffsetType {
+        EARLIEST = 0;
+        LATEST = 1;
+        TIMESTAMP = 2;
+        OFFSET = 3;
+    }
+    ResetOffsetType resetOffsetType = 4;
+    int64 timestamp = 5;
+    int64 offset = 6;
+    bool dryRun = 7;
+}
+
+message ResetOffsetResponse {
+    common.ResponseHeader responseHeader = 1;
+    repeated OffsetResultPerQueue resetResult = 2;
+}
+
+message OffsetResultPerQueue {
+    common.Partition mq = 1;
+    int64 offset = 2;
+}
+
+service AdminApiService {
+    rpc ResetConsumerOffset(ResetOffsetRequest) returns (ResetOffsetResponse);
+    rpc QueryOffset(QueryOffsetRequest) returns (QueryOffsetResponse);
+}
+

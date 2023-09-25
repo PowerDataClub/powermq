@@ -1,0 +1,210 @@
+syntax = "proto3";
+
+import public "common.proto";
+import public "admin.proto";
+package top.powerdata.powermq.consumer;
+
+option java_multiple_files = true;
+option java_package = "top.powerdata.powermq.proto";
+option java_outer_classname = "Consumer";
+
+message SubscribeRequest {
+    string consumerGroup = 1;
+    string clientId = 2;
+    string topic = 3;
+
+    int64 consumeTimeoutMillis = 7;
+    int64 heartbeatIntervalMillis = 8;
+    enum ConsumeFromWhere {
+        CONSUME_FROM_LATEST = 0;
+        CONSUME_FROM_FIRST = 1;
+        CONSUME_FROM_TIMESTAMP = 2;
+    };
+    ConsumeFromWhere consumeFromWhere = 9;
+    int64 consumeFromTimestamp = 10;
+    int32 maxReconsumeTime = 11;
+
+    enum CommitMode {
+        AUTO_COMMIT = 0;
+        MANUAL_COMMIT = 1;
+    }
+    CommitMode commitMode = 14;
+
+    bool ignoreCommittedOffset = 15;
+
+    //for ppe
+    bool headerFilter = 16;
+    //ENV
+    string headerFilterKey = 17;
+    //env value
+    string headerFilterVal = 18;
+    enum ConsumeMode {
+        HIGH_LEVEL = 0;
+        LOW_LEVEL = 1;
+    };
+    ConsumeMode consumeMode = 19;
+    repeated common.Partition messageQueues = 20;
+
+    repeated AssignPartition assignQueues = 34;
+
+    enum ClientLang {
+        UNKNOWN = 0;
+        GO = 1;
+        JAVA = 2;
+        PYTHON = 3;
+        CPP = 4;
+    };
+    ClientLang clientLang = 37;
+    string clientVersion = 38;
+};
+
+message AssignPartition {
+    common.Partition partition = 1;
+    int64 offset = 2;
+}
+
+message PollRequest {
+    string consumerGroup = 1;
+    string clientId = 2;
+    string subExpr = 3;
+    int32 batchSize = 4;
+    int32 flag = 7;
+    common.Partition partition = 8;
+    int64 confirmOffset = 9;
+};
+
+message MessageId {
+    common.Partition partition = 1;
+    string msgId = 2;
+    int64 queueOffset = 3;
+    string consumerGroup = 4;
+    string clientId = 6;
+};
+
+message HandleResult {
+    enum Command {
+        ACK = 0;
+        NACK = 1;
+    };
+    Command command = 1;
+    MessageId msgId = 2;
+};
+
+message HandleResults {
+    repeated HandleResult handleResults = 1;
+    string consumerGroup = 2;
+    string clientId = 4;
+    string env = 5;
+};
+
+message ResetConsumerOffsetReq {
+    string consumerGroup = 1;
+    string topic = 2;
+    enum ResetBy {
+        Offset = 0;
+        Timestamp = 1;
+    };
+    ResetBy resetBy = 3;
+
+    enum Whence {
+        Set = 0;
+        Cur = 1;
+        End = 2;
+    };
+    Whence whence = 4;
+    int64 offset = 5;
+    int64 timestamp = 6;
+    bool dryRun = 7;
+    repeated common.Partition mqs = 9;
+    string env = 10;
+};
+
+
+message PullResult {
+    common.ResponseHeader responseHeader = 1;
+    common.MessageConsumer msg = 2;
+    common.Partition mq = 3;
+    int64 nextBeginOffset = 4;
+};
+
+
+message GetClientsConnsRequest {
+    string consumerGroup = 1;
+}
+message GetClientsConnsResponse {
+    common.ResponseHeader responseHeader = 1;
+    repeated string clientId = 2;
+}
+
+
+message ResetConsumeOffsetResp {
+    common.ResponseHeader responseHeader = 1;
+    repeated common.Partition partition = 2;
+    repeated int64 oldOffset = 3;
+    repeated int64 newOffset = 4;
+};
+message ConfirmRequest {
+    int64 consumedSequence = 1;
+}
+
+message QueryCommittedOffsetResponse {
+    common.ResponseHeader responseHeader = 1;
+    repeated admin.OffsetResultPerQueue resetResult = 2;
+}
+
+
+message GetConsumerServerConfigResponse {
+    common.ResponseHeader responseHeader = 1;
+    int64 epoch = 2;
+    map<string, string> configMap = 3;
+}
+
+message GetConsumerProxyIdcListRequest {
+    common.RequestHeader requestHeader = 1;
+}
+
+message GetConsumerProxyIdcListResponse {
+    common.ResponseHeader responseHeader = 1;
+    repeated string idcList = 2;
+}
+
+message DegradeCoordinatorRequest {
+    bool degrade = 1;
+}
+
+message DegradeCoordinatorResponse {
+    common.ResponseHeader responseHeader = 1;
+}
+
+message GetAllGroupRequest {
+
+}
+
+message GroupMeta {
+    string consumerGroup = 1;
+}
+
+message GetAllGroupResponse {
+    common.ResponseHeader responseHeader = 1;
+    repeated GroupMeta groupList = 2;
+}
+
+message ConsumerIdentity {
+    string consumerGroup = 1;
+    string clientId = 2;
+};
+
+
+service ConsumeService {
+    rpc subscribe(SubscribeRequest) returns(common.ResponseHeader);
+    rpc heartbeat(ConsumerIdentity) returns(common.ResponseHeader);
+    rpc close(ConsumerIdentity) returns(common.ResponseHeader);
+    rpc poll(PollRequest) returns (PullResult);
+    rpc ack(MessageId) returns (common.ResponseHeader);
+    rpc nack(MessageId) returns (common.ResponseHeader);
+    rpc batchCommit(HandleResults) returns (common.ResponseHeader);
+    rpc resetConsumeOffset(ResetConsumerOffsetReq) returns (ResetConsumeOffsetResp);
+    rpc GetClientsConns (GetClientsConnsRequest) returns (GetClientsConnsResponse) {}
+    rpc getAllGroup(GetAllGroupRequest) returns (GetAllGroupResponse) {}
+};
+
