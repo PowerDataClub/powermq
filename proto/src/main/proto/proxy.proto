@@ -2,11 +2,11 @@ syntax = "proto3";
 
 import public "common.proto";
 
-package top.powerdata.powermq.admin;
+package top.powerdata.powermq.proxy;
 
 option java_multiple_files = true;
-option java_package = "top.powerdata.powermq.proto";
-option java_outer_classname = "Admin";
+option java_package = "top.powerdata.powermq.proto.proxy";
+option java_outer_classname = "Proxy";
 
 
 message QueryOffsetRequest {
@@ -25,7 +25,7 @@ message QueryOffsetRequest {
 
 message QueryOffsetResponse {
     common.ResponseHeader responseHeader = 1;
-    repeated OffsetResultPerQueue resetResult = 2;
+    repeated common.OffsetResultPerQueue resetResult = 2;
 }
 
 message ResetOffsetRequest {
@@ -46,15 +46,12 @@ message ResetOffsetRequest {
 
 message ResetOffsetResponse {
     common.ResponseHeader responseHeader = 1;
-    repeated OffsetResultPerQueue resetResult = 2;
+    repeated common.OffsetResultPerQueue resetResult = 2;
 }
 
-message OffsetResultPerQueue {
-    common.Partition mq = 1;
-    int64 offset = 2;
-}
 
-service AdminApiService {
+
+service ProxyService {
     rpc ResetConsumerOffset(ResetOffsetRequest) returns (ResetOffsetResponse);
     rpc QueryOffset(QueryOffsetRequest) returns (QueryOffsetResponse);
 }

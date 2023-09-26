@@ -3,7 +3,6 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-
   <parent>
     <groupId>top.powerdata.powermq</groupId>
     <artifactId>powermq</artifactId>
@@ -11,15 +10,30 @@
   </parent>
 
   <artifactId>broker</artifactId>
-  <version>1.0-SNAPSHOT</version>
-  <name>Archetype - broker</name>
-  <url>http://maven.apache.org</url>
+  <name>PowerMQ Broker</name>
 
   <dependencies>
     <dependency>
       <groupId>io.openmessaging.storage</groupId>
       <artifactId>dledger</artifactId>
       <version>${dleger.version}</version>
+      <exclusions>
+        <exclusion>
+          <artifactId>rocketmq-logging</artifactId>
+          <groupId>org.apache.rocketmq</groupId>
+        </exclusion>
+      </exclusions>
     </dependency>
+    <dependency>
+      <groupId>top.powerdata.powermq</groupId>
+      <artifactId>common</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+      <dependency>
+          <groupId>org.apache.curator</groupId>
+          <artifactId>curator-framework</artifactId>
+          <version>5.5.0</version>
+          <scope>compile</scope>
+      </dependency>
   </dependencies>
 </project>

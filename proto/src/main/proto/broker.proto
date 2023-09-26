@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+import public "common.proto";
+
+package top.powerdata.powermq.broker;
+
+option java_multiple_files = true;
+option java_package = "top.powerdata.powermq.proto.broker";
+option java_outer_classname = "Broker";
+
+service BrokerService {
+}
