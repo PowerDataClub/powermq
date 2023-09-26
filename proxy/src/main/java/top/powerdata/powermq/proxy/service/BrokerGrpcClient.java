@@ -14,11 +14,11 @@ public class BrokerGrpcClient implements PowerMqService {
 
     @Override
     public void start() throws Exception {
-        ManagedChannel brokerChannel = ManagedChannelBuilder
-                .forAddress(proxyConfig.getBrokerAddresses(), proxyConfig.getBrokerPort())
-                .usePlaintext()
-                .maxInboundMessageSize(128 << 20)
-                .build();
+//        ManagedChannel brokerChannel = ManagedChannelBuilder
+//                .forAddress(proxyConfig., proxyConfig.getServerPort())
+//                .usePlaintext()
+//                .maxInboundMessageSize(128 << 20)
+//                .build();
     }
 
     @Override

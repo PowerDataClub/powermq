@@ -11,7 +11,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import lombok.extern.slf4j.Slf4j;
 import top.powerdata.powermq.broker.service.BrokerGrpcService;
-import top.powerdata.powermq.broker.service.MetadataService;
+import top.powerdata.powermq.broker.service.BrokerMetadataService;
 import top.powerdata.powermq.common.PowerMqService;
 import top.powerdata.powermq.common.utils.DefaultThreadFactory;
 import top.powerdata.powermq.common.utils.SystemUtils;
@@ -28,7 +28,7 @@ public class PowerMqBrokerServer implements PowerMqService {
     private EventLoopGroup nettyWorker;
     private BrokerConfig brokerConfig;
     private ThreadPoolExecutor nettyRequestExecutor;
-    private MetadataService metadataService;
+    private BrokerMetadataService brokerMetadataService;
 
     public PowerMqBrokerServer(BrokerConfig proxyConfig) {
         this.brokerConfig = proxyConfig;
@@ -54,7 +54,7 @@ public class PowerMqBrokerServer implements PowerMqService {
                 new DefaultThreadFactory("NettyRequest_"));
 
         nettyServerBuilder = NettyServerBuilder
-                .forPort(brokerConfig.getBrokerPort())
+                .forPort(brokerConfig.getServerPort())
                 .bossEventLoopGroup(nettyBoss)
                 .workerEventLoopGroup(nettyWorker)
                 .channelType(channelType)
@@ -67,13 +67,13 @@ public class PowerMqBrokerServer implements PowerMqService {
                 .addService(brokerServiceGrpc)
                 .build();
         server.start();
-        metadataService = new MetadataService(brokerConfig);
-        metadataService.start();
+        brokerMetadataService = new BrokerMetadataService(brokerConfig);
+        brokerMetadataService.start();
 
     }
     @Override
     public void close() throws Exception {
-
+        brokerMetadataService.close();
     }
 
 }

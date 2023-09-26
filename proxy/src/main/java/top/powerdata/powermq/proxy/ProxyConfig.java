@@ -1,16 +1,9 @@
 package top.powerdata.powermq.proxy;
 
 import lombok.Data;
+import top.powerdata.powermq.common.server.data.AbstractServerConfig;
 
 @Data
-public class ProxyConfig {
-    private int proxyPort = 9010;
-    private int nettyRequestThreadCoreNums = 16;
-    private int nettyRequestThreadMaxNums = 16;
-    private int nettyRequestQueueSizes = 16;
-    private int bossLoopThreadNums = 1;
-    private int workerLoopThreadNums = 16;
-
-    private String brokerAddresses;
-    private int brokerPort = 9011;
+public class ProxyConfig extends AbstractServerConfig {
+    private int serverPort = 9011;
 }
