@@ -3,15 +3,19 @@ package top.powerdata.powermq.common.utils;
 import io.netty.channel.epoll.Epoll;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.validator.routines.InetAddressValidator;
+import org.apache.pulsar.common.util.FieldParser;
+import top.powerdata.powermq.common.server.data.AbstractServerConfig;
 
 import java.lang.reflect.Field;
 import java.net.Inet4Address;
-import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.util.Arrays;
 import java.util.Enumeration;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import static java.lang.String.format;
 
@@ -25,17 +29,19 @@ public class SystemUtils {
         return isLinuxPlatform && Epoll.isAvailable();
     }
 
-    public static <T> void updateConfig(Map<String, String> properties, T obj) throws IllegalArgumentException {
-        Field[] fields = obj.getClass().getDeclaredFields();
-        Arrays.stream(fields).forEach(f -> {
+    public static <T extends AbstractServerConfig> void updateConfig(Map<String, String> properties, T obj) throws IllegalArgumentException {
+        List<Field> fields = new LinkedList<>();
+        fields.addAll(Arrays.asList(obj.getClass().getDeclaredFields()));
+        fields.addAll(Arrays.asList(obj.getClass().getSuperclass().getDeclaredFields()));
+        fields.stream().forEach(f -> {
             if (properties.containsKey(f.getName())) {
                 try {
                     f.setAccessible(true);
                     String v = properties.get(f.getName());
                     if (!StringUtils.isBlank(v)) {
-                        f.set(obj, v);
+                        f.set(obj, FieldParser.value(trim(v), f));
                     } else {
-                        f.set(obj, null);
+                        FieldParser.setEmptyValue(v, f, obj);
                     }
                 } catch (Exception e) {
                     throw new IllegalArgumentException(format("failed to initialize %s field while setting value %s",
@@ -43,6 +49,11 @@ public class SystemUtils {
                 }
             }
         });
+    }
+
+    private static String trim(String val) {
+        Objects.requireNonNull(val);
+        return val.trim();
     }
 
 

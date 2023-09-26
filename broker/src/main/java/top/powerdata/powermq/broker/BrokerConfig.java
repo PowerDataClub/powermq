@@ -1,14 +1,11 @@
 package top.powerdata.powermq.broker;
 
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import top.powerdata.powermq.common.server.data.AbstractServerConfig;
 
+@EqualsAndHashCode(callSuper = true)
 @Data
-public class BrokerConfig {
-    private String metadataUrl;
-    private int brokerPort = 9010;
-    private int nettyRequestThreadCoreNums = 16;
-    private int nettyRequestThreadMaxNums = 16;
-    private int nettyRequestQueueSizes = 16;
-    private int bossLoopThreadNums = 1;
-    private int workerLoopThreadNums = 16;
+public class BrokerConfig extends AbstractServerConfig {
+    private int serverPort = 9010;
 }

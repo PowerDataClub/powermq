@@ -1,0 +1,149 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
+
+
+Configuration:
+  status: INFO
+  monitorInterval: 30
+  name: powermq
+  packages: io.prometheus.client.log4j2
+
+  Properties:
+    Property:
+      - name: "powermq.log.dir"
+        value: "logs"
+      - name: "powermq.log.file"
+        value: "powermq.log"
+      - name: "powermq.log.immediateFlush"
+        value: "false"
+      - name: "powermq.log.appender"
+        value: "RoutingAppender"
+      - name: "powermq.log.root.level"
+        value: "info"
+      - name: "powermq.log.level"
+        value: "info"
+      - name: "powermq.routing.appender.default"
+        value: "Console"
+
+  # Example: logger-filter script
+#  Scripts:
+#    ScriptFile:
+#      name: filter.js
+#      language: JavaScript
+#      path: ./conf/log4j2-scripts/filter.js
+#      charset: UTF-8
+
+  Appenders:
+
+    # Console
+    Console:
+      name: Console
+      target: SYSTEM_OUT
+      PatternLayout:
+        Pattern: "%d{ISO8601_OFFSET_DATE_TIME_HHMM} [%t] %-5level %logger{36} - %msg%n"
+
+    # Rolling file appender configuration
+    RollingFile:
+      name: RollingFile
+      fileName: "${sys:powermq.log.dir}/${sys:powermq.log.file}"
+      filePattern: "${sys:powermq.log.dir}/${sys:powermq.log.file}-%d{MM-dd-yyyy}-%i.log.gz"
+      immediateFlush: ${sys:powermq.log.immediateFlush}
+      PatternLayout:
+        Pattern: "%d{ISO8601_OFFSET_DATE_TIME_HHMM} [%t] %-5level %logger{36} - %msg%n"
+      Policies:
+        TimeBasedTriggeringPolicy:
+          interval: 1
+          modulate: true
+        SizeBasedTriggeringPolicy:
+          size: 1 GB
+      # Delete file older than 30days
+      DefaultRolloverStrategy:
+          Delete:
+            basePath: ${sys:powermq.log.dir}
+            maxDepth: 2
+            IfFileName:
+              glob: "${sys:powermq.log.file}*log.gz"
+            IfLastModified:
+              age: 30d
+
+    Prometheus:
+      name: Prometheus
+
+    # Routing
+    Routing:
+      name: RoutingAppender
+      Routes:
+        pattern: "$${ctx:function}"
+        Route:
+          -
+            Routing:
+              name: InstanceRoutingAppender
+              Routes:
+                pattern: "$${ctx:instance}"
+                Route:
+                  -
+                    RollingFile:
+                      name: "Rolling-${ctx:function}"
+                      fileName : "${sys:powermq.log.dir}/functions/${ctx:function}/${ctx:functionname}-${ctx:instance}.log"
+                      filePattern : "${sys:powermq.log.dir}/functions/${sys:powermq.log.file}-${ctx:instance}-%d{MM-dd-yyyy}-%i.log.gz"
+                      PatternLayout:
+                        Pattern: "%d{ABSOLUTE} %level{length=5} [%thread] [instance: %X{instance}] %logger{1} - %msg%n"
+                      Policies:
+                        TimeBasedTriggeringPolicy:
+                          interval: 1
+                          modulate: true
+                        SizeBasedTriggeringPolicy:
+                          size: "20MB"
+                        # Trigger every day at midnight that also scan
+                        # roll-over strategy that deletes older file
+                        CronTriggeringPolicy:
+                          schedule: "0 0 0 * * ?"
+                      # Delete file older than 30days
+                      DefaultRolloverStrategy:
+                          Delete:
+                            basePath: ${sys:powermq.log.dir}
+                            maxDepth: 2
+                            IfFileName:
+                              glob: "${sys:powermq.log.file}*log.gz"
+                            IfLastModified:
+                              age: 30d
+                  - ref: "${sys:powermq.routing.appender.default}"
+                    key: "${ctx:function}"
+          - ref: "${sys:powermq.routing.appender.default}"
+            key: "${ctx:function}"
+
+  Loggers:
+
+    # Default root logger configuration
+    Root:
+      level: "${sys:powermq.log.root.level}"
+      additivity: true
+      AppenderRef:
+        - ref: "${sys:powermq.log.appender}"
+          level: "${sys:powermq.log.level}"
+        - ref: Prometheus
+          level: info
+
+    Logger:
+      - name: verbose
+        level: info
+        additivity: false
+        AppenderRef:
+          - ref: Console
+

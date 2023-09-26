@@ -13,7 +13,9 @@ import lombok.extern.slf4j.Slf4j;
 import top.powerdata.powermq.common.PowerMqService;
 import top.powerdata.powermq.common.utils.DefaultThreadFactory;
 import top.powerdata.powermq.common.utils.SystemUtils;
+import top.powerdata.powermq.proxy.service.BrokerManager;
 import top.powerdata.powermq.proxy.service.ProxyGrpcService;
+import top.powerdata.powermq.proxy.service.ProxyMetadataService;
 
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -27,6 +29,8 @@ public class PowerMqProxyServer implements PowerMqService {
     private EventLoopGroup nettyWorker;
     private ProxyConfig proxyConfig;
     private ThreadPoolExecutor nettyRequestExecutor;
+    private ProxyMetadataService proxyMetadataService;
+    private BrokerManager brokerManager;
 
     public PowerMqProxyServer(ProxyConfig proxyConfig) {
         this.proxyConfig = proxyConfig;
@@ -52,7 +56,7 @@ public class PowerMqProxyServer implements PowerMqService {
                 new DefaultThreadFactory("NettyRequest_"));
 
         nettyServerBuilder = NettyServerBuilder
-                .forPort(proxyConfig.getProxyPort())
+                .forPort(proxyConfig.getServerPort())
                 .bossEventLoopGroup(nettyBoss)
                 .workerEventLoopGroup(nettyWorker)
                 .channelType(channelType)
@@ -65,6 +69,10 @@ public class PowerMqProxyServer implements PowerMqService {
                 .addService(proxyGrpcService)
                 .build();
         server.start();
+
+        brokerManager = new BrokerManager();
+        proxyMetadataService = new ProxyMetadataService(proxyConfig, brokerManager);
+        proxyMetadataService.start();
     }
     @Override
     public void close() throws Exception {

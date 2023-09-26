@@ -16,5 +16,12 @@
       <scope>compile</scope>
       <version>${project.version}</version>
     </dependency>
+    <!-- only for test! -->
+    <dependency>
+        <groupId>top.powerdata.powermq</groupId>
+        <artifactId>broker</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+        <scope>${project.version}</scope>
+    </dependency>
   </dependencies>
 </project>
