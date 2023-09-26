@@ -1,12 +1,12 @@
 syntax = "proto3";
 
 import public "common.proto";
-import public "admin.proto";
+import public "broker.proto";
 package top.powerdata.powermq.consumer;
 
 option java_multiple_files = true;
-option java_package = "top.powerdata.powermq.proto";
-option java_outer_classname = "Consumer";
+option java_package = "top.powerdata.powermq.proto.client";
+option java_outer_classname = "Client";
 
 message SubscribeRequest {
     string consumerGroup = 1;
@@ -149,7 +149,7 @@ message ConfirmRequest {
 
 message QueryCommittedOffsetResponse {
     common.ResponseHeader responseHeader = 1;
-    repeated admin.OffsetResultPerQueue resetResult = 2;
+    repeated common.OffsetResultPerQueue resetResult = 2;
 }
 
 
@@ -192,6 +192,30 @@ message GetAllGroupResponse {
 message ConsumerIdentity {
     string consumerGroup = 1;
     string clientId = 2;
+};
+
+
+message SendRequest {
+    string partitionKey = 1;
+    string producerName = 2;
+    string clientId = 3;
+    bool partitionAssigned = 4;
+    common.Partition partition = 5;
+
+    common.MessageProduce msg = 99;
+};
+
+message SendResponse {
+    common.ResponseHeader respHeader = 1;
+    string msgId = 2;
+    common.Partition partition = 3;
+    int64 partitionOffset = 4;
+    string offsetMsgId = 5;
+    string expireTimestamp = 6;
+};
+
+service ProduceService {
+    rpc Send(SendRequest) returns (SendResponse);
 };
 
 

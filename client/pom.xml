@@ -11,7 +11,7 @@
     </parent>
 
     <artifactId>client</artifactId>
-    <name>PowerMQ Client ${project.version}</name>
+    <name>PowerMQ Client</name>
 
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
