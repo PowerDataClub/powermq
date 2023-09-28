@@ -1,10 +1,7 @@
 package top.powerdata.powermq.proxy.service;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.curator.framework.api.CuratorWatcher;
 import org.apache.zookeeper.AddWatchMode;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
 import top.powerdata.powermq.common.Consts;

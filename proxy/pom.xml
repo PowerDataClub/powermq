@@ -16,12 +16,19 @@
       <scope>compile</scope>
       <version>${project.version}</version>
     </dependency>
+
     <!-- only for test! -->
     <dependency>
         <groupId>top.powerdata.powermq</groupId>
         <artifactId>broker</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
-        <scope>${project.version}</scope>
+        <version>${project.version}</version>
+        <scope>test</scope>
+          <exclusions>
+            <exclusion>
+              <artifactId>zookeeper</artifactId>
+              <groupId>org.apache.zookeeper</groupId>
+            </exclusion>
+          </exclusions>
     </dependency>
   </dependencies>
 </project>

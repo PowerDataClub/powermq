@@ -36,7 +36,7 @@
 * ClusterSet 集群集, 代表多个idc/region的集群
 * Cluster 代表单个region的集群实例
 * Tenant 租户
-* Namespace 命名空间
+* Namespace 命名空间, 命名空间层面或许可以挂着不同的存储插件, 来实现不同侧重点的功能
 * Topic 逻辑上的topic, 归属于一个命名空间, 代表一个或多个partition合集
 * Partition topic上的某个分区, 可以在末端进行写入, 并行进行消费
 * Message 每个message代表一条独立的消息, 带有一个自增的唯一messageId

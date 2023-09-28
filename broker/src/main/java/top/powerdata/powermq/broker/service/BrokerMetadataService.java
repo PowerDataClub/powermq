@@ -6,7 +6,6 @@ import top.powerdata.powermq.common.server.SelfRegisterService;
 import top.powerdata.powermq.common.server.data.BrokerData;
 import top.powerdata.powermq.common.server.data.ComponentCommonData;
 
-
 public class BrokerMetadataService extends SelfRegisterService {
     public BrokerMetadataService(BrokerConfig config) {
         super(config);
