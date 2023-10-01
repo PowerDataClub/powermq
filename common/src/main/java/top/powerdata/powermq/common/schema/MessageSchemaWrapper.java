@@ -4,10 +4,13 @@ import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.schema.Field;
 import org.apache.pulsar.client.api.schema.GenericObject;
 import org.apache.pulsar.client.api.schema.GenericRecord;
-import org.apache.pulsar.client.api.schema.GenericRecordBuilder;
 import org.apache.pulsar.client.api.schema.GenericSchema;
 import org.apache.pulsar.client.api.schema.SchemaDefinition;
 import org.apache.pulsar.client.api.schema.SchemaInfoProvider;
+import org.apache.pulsar.client.impl.schema.AvroSchema;
+import org.apache.pulsar.client.impl.schema.BytesSchema;
+import org.apache.pulsar.client.impl.schema.JSONSchema;
+import org.apache.pulsar.client.impl.schema.StringSchema;
 import org.apache.pulsar.client.internal.DefaultImplementation;
 import org.apache.pulsar.common.schema.KeyValue;
 import org.apache.pulsar.common.schema.KeyValueEncodingType;
@@ -15,24 +18,61 @@ import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
 
 import java.nio.ByteBuffer;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 
-public class MessageSchemaWrapper<T> implements MessageSchema<T>{
-    private Schema<T> schema;
+public class MessageSchemaWrapper<T> extends MessageSchema<T> {
+    final static public String ONLY_ONE_FIELD_NAME = "__";
+    final private Schema<T> schema;
     private GenericSchema genericSchema;
+    private List<FieldInfo> fieldInfos;
     public MessageSchemaWrapper(Schema<T> schema) {
         this.schema = schema;
     }
-    public MessageSchemaWrapper(GenericSchema genericSchema) {
-        this.genericSchema = genericSchema;
+
+    public List<FieldInfo> getSchemaFields() {
+        if (fieldInfos != null) {
+            return fieldInfos;
+        }
+
+        if (schema instanceof AvroSchema) {
+            AvroSchema avroSchema = (AvroSchema) schema;
+            fieldInfos = getFieldInfosFromSchema(avroSchema.getAvroSchema().getFields());
+        } else if (schema instanceof BytesSchema) {
+            fieldInfos = Arrays.asList(FieldInfo.builder()
+                    .fieldName(ONLY_ONE_FIELD_NAME)
+                    .type(org.apache.pulsar.shade.org.apache.avro.Schema.Type.BYTES)
+                    .build());
+        } else if (schema instanceof StringSchema) {
+            fieldInfos = Arrays.asList(FieldInfo.builder()
+                    .fieldName(ONLY_ONE_FIELD_NAME)
+                    .type(org.apache.pulsar.shade.org.apache.avro.Schema.Type.STRING)
+                    .build());
+        } else if (schema instanceof JSONSchema) {
+            JSONSchema jsonSchema = (JSONSchema) schema;
+            fieldInfos = getFieldInfosFromSchema(jsonSchema.getAvroSchema().getFields());
+        } else {
+            throw new RuntimeException("unsupported schema");
+        }
+        return fieldInfos;
+    }
+
+    private List<FieldInfo> getFieldInfosFromSchema(List<org.apache.pulsar.shade.org.apache.avro.Schema.Field> fields) {
+        List<FieldInfo> fieldInfoResult = new LinkedList<>();
+        for (org.apache.pulsar.shade.org.apache.avro.Schema.Field field : fields) {
+            FieldInfo fieldInfo = FieldInfo.builder()
+                    .fieldName(field.name())
+                    .type(field.schema().getType())
+                    .build();
+            if (field.schema().getType().equals(org.apache.pulsar.shade.org.apache.avro.Schema.Type.UNION)) {
+                fieldInfo.setTypes(field.schema().getTypes());
+            }
+            fieldInfoResult.add(fieldInfo);
+        }
+        return fieldInfoResult;
     }
 
     public MessageSchemaWrapper() {
@@ -71,7 +111,7 @@ public class MessageSchemaWrapper<T> implements MessageSchema<T>{
 
     @Override
     public T decode(ByteBuffer data) {
-        return MessageSchema.super.decode(data);
+        return schema.decode(data);
     }
 
     @Override
@@ -101,102 +141,8 @@ public class MessageSchemaWrapper<T> implements MessageSchema<T>{
 
     @Override
     public Optional<Object> getNativeSchema() {
-        return MessageSchema.super.getNativeSchema();
+        return schema.getNativeSchema();
     }
 
-    public static <T extends com.google.protobuf.GeneratedMessageV3> MessageSchema<T> PROTOBUF(SchemaDefinition<T> schemaDefinition) {
-        return new MessageSchemaWrapper<>(Schema.PROTOBUF(schemaDefinition));
-    }
-
-
-    static <T extends com.google.protobuf.GeneratedMessageV3> MessageSchema<T> PROTOBUF_NATIVE(Class<T> clazz) {
-        return new MessageSchemaWrapper<>(DefaultImplementation.getDefaultImplementation()
-                .newProtobufNativeSchema(SchemaDefinition.builder().withPojo(clazz).build()));
-    }
-
-    static <T extends com.google.protobuf.GeneratedMessageV3> MessageSchema<T> PROTOBUF_NATIVE(
-            SchemaDefinition<T> schemaDefinition) {
-        return new MessageSchemaWrapper<>(DefaultImplementation.getDefaultImplementation().newProtobufNativeSchema(schemaDefinition));
-    }
-
-    static <T> MessageSchema<T> AVRO(Class<T> pojo) {
-        return new MessageSchemaWrapper<>(DefaultImplementation.getDefaultImplementation()
-                .newAvroSchema(SchemaDefinition.builder().withPojo(pojo).build()));
-    }
-
-    static <T> MessageSchema<T> AVRO(SchemaDefinition<T> schemaDefinition) {
-        return new MessageSchemaWrapper<>(DefaultImplementation.getDefaultImplementation().newAvroSchema(schemaDefinition));
-    }
-
-    static <T> MessageSchema<T> JSON(Class<T> pojo) {
-        return new MessageSchemaWrapper<>(DefaultImplementation.getDefaultImplementation()
-                .newJSONSchema(SchemaDefinition.builder().withPojo(pojo).build()));
-    }
-
-    static <T> MessageSchema<T> JSON(SchemaDefinition schemaDefinition) {
-        return new MessageSchemaWrapper<>(DefaultImplementation.getDefaultImplementation().newJSONSchema(schemaDefinition));
-    }
-
-    static <K, V> MessageSchema<KeyValue<K, V>> KeyValue(Class<K> key, Class<V> value, SchemaType type) {
-        return new MessageSchemaWrapper<>(DefaultImplementation.getDefaultImplementation().newKeyValueSchema(key, value, type));
-    }
-
-    static MessageSchema<KeyValue<byte[], byte[]>> KV_BYTES() {
-        return new MessageSchemaWrapper<>(DefaultImplementation.getDefaultImplementation().newKeyValueBytesSchema());
-    }
-
-    static <K, V> MessageSchema<KeyValue<K, V>> KeyValue(Class<K> key, Class<V> value) {
-        return new MessageSchemaWrapper<>(DefaultImplementation.getDefaultImplementation().newKeyValueSchema(key, value, SchemaType.JSON));
-    }
-
-    static <K, V> MessageSchema<KeyValue<K, V>> KeyValue(Schema<K> key, Schema<V> value) {
-        return new MessageSchemaWrapper<>(KeyValue(key, value, KeyValueEncodingType.INLINE));
-    }
-
-    static <K, V> MessageSchema<KeyValue<K, V>> KeyValue(Schema<K> key, Schema<V> value,
-                                                  KeyValueEncodingType keyValueEncodingType) {
-        return new MessageSchemaWrapper<>(DefaultImplementation.getDefaultImplementation().newKeyValueSchema(key, value, keyValueEncodingType));
-    }
-
-    @Deprecated
-    static MessageSchema<GenericRecord> AUTO() {
-        return AUTO_CONSUME();
-    }
-
-    static MessageSchema<GenericRecord> AUTO_CONSUME() {
-        return new MessageSchemaWrapper<>(DefaultImplementation.getDefaultImplementation().newAutoConsumeSchema());
-    }
-
-    static MessageSchema<byte[]> AUTO_PRODUCE_BYTES() {
-        return new MessageSchemaWrapper<>(DefaultImplementation.getDefaultImplementation().newAutoProduceSchema());
-    }
-
-    static MessageSchema<byte[]> AUTO_PRODUCE_BYTES(Schema<?> schema) {
-        return new MessageSchemaWrapper<>(DefaultImplementation.getDefaultImplementation().newAutoProduceSchema(schema));
-    }
-
-    static MessageSchema<byte[]> NATIVE_AVRO(Object schema) {
-        return new MessageSchemaWrapper<>(DefaultImplementation.getDefaultImplementation().newAutoProduceValidatedAvroSchema(schema));
-    }
-
-    static MessageSchema<?> getSchema(SchemaInfo schemaInfo) {
-        return new MessageSchemaWrapper<>(DefaultImplementation.getDefaultImplementation().getSchema(schemaInfo));
-    }
-
-    final static public MessageSchemaWrapper<String> STRING = new MessageSchemaWrapper<>(Schema.STRING);
-    final static public MessageSchemaWrapper<Byte> INT8 = new MessageSchemaWrapper<>(Schema.INT8);
-    final static public MessageSchemaWrapper<Short> INT16 = new MessageSchemaWrapper<>(Schema.INT16);
-    final static public MessageSchemaWrapper<Integer> INT32 = new MessageSchemaWrapper<>(Schema.INT32);
-    final static public MessageSchemaWrapper<Long> INT64 = new MessageSchemaWrapper<>(Schema.INT64);
-    final static public MessageSchemaWrapper<Boolean> BOOL = new MessageSchemaWrapper<>(Schema.BOOL);
-    final static public MessageSchemaWrapper<Float> FLOAT = new MessageSchemaWrapper<>(Schema.FLOAT);
-    final static public MessageSchemaWrapper<Double> DOUBLE = new MessageSchemaWrapper<>(Schema.DOUBLE);
-    final static public MessageSchemaWrapper<Date> DATE = new MessageSchemaWrapper<>(Schema.DATE);
-    final static public MessageSchemaWrapper<Time> TIME = new MessageSchemaWrapper<>(Schema.TIME);
-    final static public MessageSchemaWrapper<Timestamp> TIMESTAMP = new MessageSchemaWrapper<>(Schema.TIMESTAMP);
-    final static public MessageSchemaWrapper<Instant> INSTANT = new MessageSchemaWrapper<>(Schema.INSTANT);
-    final static public MessageSchemaWrapper<LocalDate> LOCAL_DATE = new MessageSchemaWrapper<>(Schema.LOCAL_DATE);
-    final static public MessageSchemaWrapper<LocalTime> LOCAL_TIME = new MessageSchemaWrapper<>(Schema.LOCAL_TIME);
-    final static public MessageSchemaWrapper<LocalDateTime> LOCAL_DATE_TIME = new MessageSchemaWrapper<>(Schema.LOCAL_DATE_TIME);
 
 }

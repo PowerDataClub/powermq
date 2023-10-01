@@ -4,8 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.pulsar.client.api.Schema;
-import org.apache.pulsar.client.api.schema.GenericSchema;
-import org.apache.pulsar.client.impl.schema.generic.GenericSchemaImpl;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -27,6 +25,7 @@ public class MessageSchemaWrapperTest {
         byte[] res1 = schemaWrapper.encode(input);
         byte[] res2 = schemaWrapper.decode(res1);
         assertEquals(input, res2);
+        assertEquals(1, schemaWrapper.getSchemaFields().size());
     }
 
     @Test
@@ -41,6 +40,8 @@ public class MessageSchemaWrapperTest {
         byte[] res3 = schemaString.encode(input);
         String res4 = schemaString.decode(res3);
         assertEquals(input, res4);
+
+        assertEquals(1, schemaWrapper.getSchemaFields().size());
     }
 
     @Test
@@ -51,6 +52,9 @@ public class MessageSchemaWrapperTest {
         assertEquals("{\"id\":1,\"name\":\"Bod\"}", new String(res1));
         Foo res2 = encodeSchema.decode(res1);
         assertEquals(input, res2);
+
+        assertEquals(2, encodeSchema.getSchemaFields().size());
+        assertEquals("id", encodeSchema.getSchemaFields().get(0).getFieldName());
     }
 
     @Test
@@ -60,5 +64,8 @@ public class MessageSchemaWrapperTest {
         byte[] res1 = encodeSchema.encode(input);
         Foo res2 = encodeSchema.decode(res1);
         assertEquals(input, res2);
+
+        assertEquals(2, encodeSchema.getSchemaFields().size());
     }
+
 }
