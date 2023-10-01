@@ -5,8 +5,8 @@ import top.powerdata.powermq.common.server.data.PartitionData;
 import top.powerdata.powermq.common.server.data.TopicData;
 
 public abstract class LakeMessageStore extends AbstractMessageStore {
-    public LakeMessageStore(TopicData topicData, PartitionData partition, MessageSchema schema) {
-        super(topicData, partition, schema);
+    public LakeMessageStore(PartitionData partition, MessageSchema schema) {
+        super(partition, schema);
     }
 
     @Override
