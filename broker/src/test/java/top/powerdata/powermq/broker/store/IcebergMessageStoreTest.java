@@ -2,6 +2,7 @@ package top.powerdata.powermq.broker.store;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.iceberg.hadoop.HadoopCatalog;
 import org.junit.After;
@@ -17,14 +18,20 @@ import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
+
+import static junit.framework.TestCase.assertEquals;
+import static top.powerdata.powermq.common.schema.MessageSchemaWrapper.map2message;
+import static top.powerdata.powermq.common.schema.MessageSchemaWrapper.message2map;
 
 public class IcebergMessageStoreTest {
     static String warehousePath = "file:///tmp/test_warehouse_path";
 
     @Data
     @AllArgsConstructor
-    static class TestBean {
+    @NoArgsConstructor
+    public static class TestBean {
         private int id;
         private String name;
         private double point;
@@ -51,6 +58,7 @@ public class IcebergMessageStoreTest {
         icebergMessageStore.close();
         // test load table again
         icebergMessageStore.start();
+        icebergMessageStore.close();
     }
 
     @Test
@@ -59,7 +67,7 @@ public class IcebergMessageStoreTest {
         HadoopCatalog catalog = new HadoopCatalog(conf, warehousePath);
 
         PartitionData PartitionData = new PartitionData("test_tenant", "test_namespace", "test_topicname", 0);
-        MessageSchema<TestBean> schema = MessageSchemaWrapper.JSON(TestBean.class);;
+        MessageSchema<TestBean> schema = MessageSchemaWrapper.JSON(TestBean.class);
 
         IcebergMessageStore icebergMessageStore = new IcebergMessageStore(PartitionData, schema, catalog);
         icebergMessageStore.start();
@@ -85,10 +93,21 @@ public class IcebergMessageStoreTest {
             icebergMessageStore.asyncAddMessage(message3);
         }
         icebergMessageStore.flush();
-        icebergMessageStore.asyncAddMessage(message);
-        icebergMessageStore.asyncAddMessage(message2);
-        icebergMessageStore.asyncAddMessage(message3);
+        icebergMessageStore.asyncAddMessage(message2map(message));
+        icebergMessageStore.asyncAddMessage(message2map(message2));
+        icebergMessageStore.asyncAddMessage(message2map(message3));
         icebergMessageStore.flush();
+
+        assertEquals(new HashMap<>(ImmutableMap.of(0,15000L, 1, 15000L, 2, 15000L)),
+                new HashMap<>(icebergMessageStore.getMaxOffsets()));
+        assertEquals(new HashMap<>(ImmutableMap.of(0,0L, 1, 0L, 2, 0L)),
+                new HashMap<>(icebergMessageStore.getMinOffsets()));
+
+
+        Map<String, Object> res = icebergMessageStore.getMessage(1, 1);
+        SchemaMessage<TestBean> resultMessage = map2message(res, schema, TestBean.class);
+        assertEquals(message2, resultMessage);
+        icebergMessageStore.close();
     }
 
     @After

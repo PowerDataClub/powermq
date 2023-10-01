@@ -1,7 +1,7 @@
 package top.powerdata.powermq.common.schema;
 
+import lombok.SneakyThrows;
 import org.apache.pulsar.client.api.Schema;
-import org.apache.pulsar.client.api.schema.Field;
 import org.apache.pulsar.client.api.schema.GenericObject;
 import org.apache.pulsar.client.api.schema.GenericRecord;
 import org.apache.pulsar.client.api.schema.GenericSchema;
@@ -16,16 +16,25 @@ import org.apache.pulsar.common.schema.KeyValue;
 import org.apache.pulsar.common.schema.KeyValueEncodingType;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
+import top.powerdata.powermq.common.SchemaMessage;
 
+import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+
+import static top.powerdata.powermq.common.Consts.ONLY_ONE_FIELD_NAME;
+import static top.powerdata.powermq.common.Consts.__SYSTEM_PROPERTIES;
+import static top.powerdata.powermq.common.Consts.__TOPIC;
 
 public class MessageSchemaWrapper<T> extends MessageSchema<T> {
-    final static public String ONLY_ONE_FIELD_NAME = "__";
     final private Schema<T> schema;
     private GenericSchema genericSchema;
     private List<FieldInfo> fieldInfos;
@@ -33,6 +42,61 @@ public class MessageSchemaWrapper<T> extends MessageSchema<T> {
         this.schema = schema;
     }
 
+    public final static Set<MessageSchemaWrapper> simpleSet = new HashSet<>();
+    static {
+        simpleSet.add(STRING);
+        simpleSet.add(INT8);
+        simpleSet.add(INT16);
+        simpleSet.add(INT32);
+        simpleSet.add(INT64);
+        simpleSet.add(BOOL);
+        simpleSet.add(FLOAT);
+        simpleSet.add(DOUBLE);
+        simpleSet.add(DATE);
+        simpleSet.add(TIME);
+        simpleSet.add(TIMESTAMP);
+        simpleSet.add(INSTANT);
+        simpleSet.add(LOCAL_DATE);
+        simpleSet.add(LOCAL_TIME);
+        simpleSet.add(LOCAL_DATE_TIME);
+    }
+
+
+    @SneakyThrows
+    public static <T> Map<String, Object> message2map(SchemaMessage<T> message) {
+        Map<String, Object> res = new HashMap<>();
+        if (message.getMessageSchema().isSimpleSchema()) {
+            res.put(ONLY_ONE_FIELD_NAME, message.getMsgWithSchema()) ;
+        } else {
+            Object obj = message.getMsgWithSchema();
+            for (Field declaredField : obj.getClass().getDeclaredFields()) {
+                declaredField.setAccessible(true);
+                Object value = declaredField.get(message.getMsgWithSchema());
+                res.put(declaredField.getName(), value);
+            }
+        }
+        res.put(__SYSTEM_PROPERTIES, message.getSystemProperties());
+        res.put(__TOPIC, message.getTopic());
+        return res;
+    }
+
+    @SneakyThrows
+    public static <T> SchemaMessage map2message(Map<String, Object> res, MessageSchema<T> schema, Class<T> clazz) {
+        String topic = (String) res.get(__TOPIC);
+        Map<String, String> properties = (Map) res.get(__SYSTEM_PROPERTIES);
+        T instance = clazz.newInstance();
+        for (Field field : clazz.getDeclaredFields()) {
+            if (res.containsKey(field.getName())) {
+                field.setAccessible(true);
+                field.set(instance, res.get(field.getName()));
+            }
+        }
+        return new SchemaMessage(topic, properties, instance, schema);
+    }
+
+    public boolean isSimpleSchema() {
+        return simpleSet.contains(schema);
+    }
     public List<FieldInfo> getSchemaFields() {
         if (fieldInfos != null) {
             return fieldInfos;
@@ -143,6 +207,7 @@ public class MessageSchemaWrapper<T> extends MessageSchema<T> {
     public Optional<Object> getNativeSchema() {
         return schema.getNativeSchema();
     }
+
 
 
 }

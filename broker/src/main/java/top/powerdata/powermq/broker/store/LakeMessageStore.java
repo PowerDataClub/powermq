@@ -14,7 +14,10 @@ public abstract class LakeMessageStore extends AbstractMessageStore {
         super.start();
         buildLakeSchema(getMessageSchema());
         createDataLakeTable();
+        tryRecover();
     }
+
+    public abstract void tryRecover();
 
     public abstract void buildLakeSchema(MessageSchema schema);
 

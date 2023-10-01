@@ -18,6 +18,9 @@ import top.powerdata.powermq.common.server.data.BrokerData;
 public class BrokerMetadataServiceTest extends AbstractZookeeperServerTest{
     @Test
     public void testBrokerRegister () throws Exception {
+        if (!isDockerRunning()) {
+            return;
+        }
         CuratorFramework curatorFramework = CuratorFrameworkFactory.builder()
                 .connectString(getZkAddress())
                 .retryPolicy(new RetryOneTime(1000))

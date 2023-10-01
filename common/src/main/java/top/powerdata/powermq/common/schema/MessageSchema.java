@@ -8,6 +8,7 @@ import org.apache.pulsar.common.schema.KeyValue;
 import org.apache.pulsar.common.schema.KeyValueEncodingType;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
+import top.powerdata.powermq.common.SchemaMessage;
 
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -16,7 +17,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public abstract class MessageSchema<T> implements Schema<T> {
 
@@ -27,6 +31,7 @@ public abstract class MessageSchema<T> implements Schema<T> {
         return null;
     }
 
+    public abstract boolean isSimpleSchema();
     final static public MessageSchemaWrapper<String> STRING = new MessageSchemaWrapper<>(Schema.STRING);
     final static public MessageSchemaWrapper<Byte> INT8 = new MessageSchemaWrapper<>(Schema.INT8);
     final static public MessageSchemaWrapper<Short> INT16 = new MessageSchemaWrapper<>(Schema.INT16);
