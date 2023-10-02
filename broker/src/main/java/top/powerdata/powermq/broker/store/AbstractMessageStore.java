@@ -26,19 +26,4 @@ public abstract class AbstractMessageStore implements MessageStore {
     public void close() throws Exception {
 
     }
-
-    @Override
-    public CompletableFuture<GetMessageResult> getMessage(long offset) {
-        return null;
-    }
-
-    @Override
-    public long getMinOffset() {
-        return 0;
-    }
-
-    @Override
-    public long getMaxOffset() {
-        return 0;
-    }
 }
